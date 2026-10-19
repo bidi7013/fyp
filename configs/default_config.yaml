@@ -1,0 +1,38 @@
+# ASPIRE-Vision Default System Configuration
+# CAT405 Intelligent Computing Major Project
+
+system:
+  device: "cuda" # 'cuda' or 'cpu'
+  seed: 42
+  log_level: "INFO"
+
+video:
+  source_path: "data/samples/pilot_clip.mp4"
+  start_timestamp: "2026-10-20T08:00:00"
+  target_fps: null # null retains original video FPS
+  display_preview: true
+  save_annotated_video: true
+  annotated_output_path: "data/exports/annotated_output.mp4"
+
+detection:
+  model_weights: "yolov8n.pt" # Standard lightweight YOLOv8 model for MVP
+  confidence_threshold: 0.35
+  iou_threshold: 0.50
+  classes: [0] # 0 = 'person' in COCO dataset
+
+tracking:
+  tracker_type: "bytetrack" # 'bytetrack' or 'deepsort'
+  track_high_thresh: 0.5
+  track_low_thresh: 0.1
+  new_track_thresh: 0.6
+  track_buffer: 30 # Number of frames to keep lost tracks
+  match_thresh: 0.8
+
+spatial:
+  zones_config_file: "configs/camera_zones.json"
+  anchor_point: "bottom_center" # 'bottom_center' (recommended for ground plane) or 'center'
+  hysteresis_buffer_pixels: 10 # Deadband distance to prevent line-jitter duplicate counts
+
+export:
+  output_csv_path: "data/exports/events_log.csv"
+  write_frequency_frames: 1 # Export every frame or on discrete events

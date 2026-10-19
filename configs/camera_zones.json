@@ -1,0 +1,31 @@
+{
+  "camera_id": "CAM_01_GATEWAY",
+  "resolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "tripwires": [
+    {
+      "id": "LINE_MAIN_ENTRANCE",
+      "name": "Main Entrance Crossing",
+      "start": [400, 700],
+      "end": [1500, 700],
+      "direction_vector": [0, -1],
+      "in_label": "CROSS_IN",
+      "out_label": "CROSS_OUT"
+    }
+  ],
+  "occupancy_zones": [
+    {
+      "id": "ZONE_FOYER",
+      "name": "Foyer Lobby Area",
+      "polygon": [
+        [350, 450],
+        [1550, 450],
+        [1600, 950],
+        [300, 950]
+      ],
+      "label": "OCCUPY"
+    }
+  ]
+}

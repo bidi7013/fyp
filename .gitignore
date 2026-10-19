@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyTorch / Models
+*.pt
+*.pth
+*.onnx
+weights/
+runs/
+
+# Large Video Datasets (keep folder structure via .gitkeep)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+!data/samples/sample_test.mp4
+
+# Node & Dashboard
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dashboard/dist/
+dashboard/build/
+.next/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Output Logs / Processed Exports (keep folder, ignore runtime dumps if needed)
+data/exports/*.csv
+!data/exports/.gitkeep
