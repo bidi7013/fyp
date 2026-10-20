@@ -96,18 +96,20 @@ class LineCrossingTracker:
 
             if orient_prev < 0 and orient_curr > 0:
                 # Transitioned from SIDE_B to SIDE_A -> "CROSS_IN"
-                if prev_confirmed_state != TrackLineState.SIDE_A:
+                # Strictly requires track to have been confirmed on SIDE_B
+                if prev_confirmed_state == TrackLineState.SIDE_B:
                     self.total_in += 1
                     event = CrossingEvent(frame_id, track_id, current_pos, self.in_label, timestamp)
-                    self.track_states[track_id] = TrackLineState.SIDE_A
+                    self.track_states[track_id] = TrackLineState.DEADBAND  # Lock in deadband until cleared
             elif orient_prev > 0 and orient_curr < 0:
                 # Transitioned from SIDE_A to SIDE_B -> "CROSS_OUT"
-                if prev_confirmed_state != TrackLineState.SIDE_B:
+                # Strictly requires track to have been confirmed on SIDE_A
+                if prev_confirmed_state == TrackLineState.SIDE_A:
                     self.total_out += 1
                     event = CrossingEvent(frame_id, track_id, current_pos, self.out_label, timestamp)
-                    self.track_states[track_id] = TrackLineState.SIDE_B
+                    self.track_states[track_id] = TrackLineState.DEADBAND  # Lock in deadband until cleared
 
-        # Update confirmed state once track clears the hysteresis deadband
+        # Update confirmed state ONLY once track clears the hysteresis deadband
         if current_state in (TrackLineState.SIDE_A, TrackLineState.SIDE_B):
             self.track_states[track_id] = current_state
 
