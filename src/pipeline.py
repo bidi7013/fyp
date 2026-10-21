@@ -130,10 +130,11 @@ class VisionPipeline:
         Renders an annotated video (if OpenCV is present) and exports events to CSV.
         """
         print(f"\n[Simulation] Initializing {total_frames}-frame simulation ({width}x{height} @ {fps} fps)...")
-        output_video_path = Path("data/exports/simulation_demo.mp4")
+        # VP8/WebM plays natively in browsers (the dashboard); OpenCV's mp4v codec does not.
+        output_video_path = Path("data/exports/simulation_demo.webm")
         writer = None
         if cv2 is not None and np is not None:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            fourcc = cv2.VideoWriter_fourcc(*'VP80')
             writer = cv2.VideoWriter(str(output_video_path), fourcc, fps, (width, height))
 
         peak_occupancy = 0
