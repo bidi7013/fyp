@@ -11,7 +11,7 @@ import type { CameraZonesConfig, EventLogEntry, EventType } from './types';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [videoSrc, setVideoSrc] = useState<string>('/simulation_demo.mp4');
+  const [videoSrc, setVideoSrc] = useState<string>('/simulation_demo.webm');
   const [events, setEvents] = useState<EventLogEntry[]>([]);
   const [zonesConfig, setZonesConfig] = useState<CameraZonesConfig | null>(null);
   const [currentFrame, setCurrentFrame] = useState<number>(1);
