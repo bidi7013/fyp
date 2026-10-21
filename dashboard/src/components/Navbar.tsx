@@ -1,5 +1,5 @@
 import React from 'react';
-import { Video, Upload, Download, Eye } from 'lucide-react';
+import { Video, Upload, Download } from 'lucide-react';
 
 interface NavbarProps {
   onVideoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
