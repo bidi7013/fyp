@@ -40,9 +40,13 @@ DASHBOARD_DIST = PROJECT_ROOT / "dashboard" / "dist"
 
 # The API has no authentication, so it must only be reachable from this machine.
 # Host checks stop DNS-rebinding pages from reading it; Origin checks stop other
-# websites open in the browser from sending it state-changing requests.
+# websites open in the browser from sending it state-changing requests. Writes
+# must also carry CLIENT_HEADER: a cross-origin page cannot add a custom header
+# without a CORS preflight, which this API never grants, so this holds even for
+# other servers running on localhost.
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
+CLIENT_HEADER = "X-Aspire-Client"
 
 TrackerFactory = Callable[[AppConfig], BaseTracker]
 
@@ -104,10 +108,12 @@ def create_app(
         host = urlsplit(f"//{request.headers.get('host', '')}").hostname
         if host not in allowed_hosts:
             return JSONResponse({"detail": "Host not allowed"}, status_code=403)
-        origin = request.headers.get("origin")
-        if request.method not in SAFE_METHODS and origin is not None:
-            if urlsplit(origin).hostname not in allowed_hosts:
+        if request.method not in SAFE_METHODS:
+            origin = request.headers.get("origin")
+            if origin is not None and urlsplit(origin).hostname not in allowed_hosts:
                 return JSONResponse({"detail": "Cross-origin request refused"}, status_code=403)
+            if CLIENT_HEADER.lower() not in request.headers:
+                return JSONResponse({"detail": f"Missing {CLIENT_HEADER} header"}, status_code=403)
         return await call_next(request)
 
     def base_config() -> AppConfig:

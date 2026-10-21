@@ -36,7 +36,7 @@ def client(tmp_path):
 
     app = create_app(Workspace(tmp_path), tracker_factory=factory, serve_dashboard=False,
                      allowed_hosts=("testserver", "127.0.0.1", "localhost"))
-    with TestClient(app) as c:
+    with TestClient(app, headers={"X-Aspire-Client": "test"}) as c:
         yield c
 
 
@@ -121,3 +121,7 @@ def test_refuses_foreign_hosts_and_cross_origin_writes(client):
     # ...while the dashboard's own origin (Vite dev server or same origin) is accepted.
     assert client.get("/api/health", headers={"Origin": "https://attacker.example"}).status_code == 200
     assert client.post("/api/runs", json={}, headers={"Origin": "http://localhost:5173"}).status_code == 422
+    # A write without the client header (e.g. a form post from another local server) is refused.
+    del client.headers["X-Aspire-Client"]
+    assert client.post("/api/demo", headers={"Origin": "http://localhost:3000"}).status_code == 403
+    assert client.post("/api/demo").status_code == 403

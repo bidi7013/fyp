@@ -10,10 +10,14 @@ export class ApiError extends Error {
   }
 }
 
+// The API refuses writes without this header; browsers cannot add it to
+// cross-origin requests, so other websites cannot drive the local API.
+const CLIENT_HEADER = { 'X-Aspire-Client': 'dashboard' };
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, init);
+    res = await fetch(path, { ...init, headers: { ...CLIENT_HEADER, ...init?.headers } });
   } catch {
     throw new ApiError(0, 'Cannot reach the ASPIRE-Vision API. Start it with: python -m src.cli serve');
   }
