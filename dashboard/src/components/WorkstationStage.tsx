@@ -6,8 +6,6 @@ import {
   SkipBack,
   SkipForward,
   Layers,
-  ChevronRight,
-  ShieldCheck,
   CheckCircle2,
 } from 'lucide-react';
 import type { CameraZonesConfig, EventLogEntry } from '../types';

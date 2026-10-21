@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Download, Search, Filter, Clock, Eye, CheckCircle2 } from 'lucide-react';
+import { Download, Search, Filter, Clock, Eye } from 'lucide-react';
 import type { EventLogEntry, EventType } from '../types';
 
 interface EventLogTableProps {
