@@ -1,78 +1,103 @@
 import React from 'react';
-import { ShieldCheck, Video, Upload, Camera } from 'lucide-react';
+import { Video, Upload, Download, Eye } from 'lucide-react';
 
 interface NavbarProps {
   onVideoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCSVUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onExportCSV: () => void;
+  onScrollToStage: () => void;
+  onScrollToLayers: () => void;
+  onScrollToLogs: () => void;
   cameraId?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onVideoUpload,
   onCSVUpload,
+  onExportCSV,
+  onScrollToStage,
+  onScrollToLayers,
+  onScrollToLogs,
   cameraId = 'CAM_01_GATEWAY',
 }) => {
   return (
-    <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30 px-6 py-3.5">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Brand & Title */}
+    <nav className="sticky top-0 z-40 bg-[#FAF7F2]/90 backdrop-blur-md border-b border-[#EAE5DD] px-6 lg:px-12 py-3.5 transition-all">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        {/* Brand Logo & Name */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <ShieldCheck className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#F06548]"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-[#18181B]"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-[#18181B]/40"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-[#F06548]/40"></div>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black tracking-tight text-white">
-                ASPIRE-Vision
-              </h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                CAT405 FYP
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              Intelligent Pedestrian Analytics & Directional Counting Dashboard
-            </p>
+          <span className="text-xl font-bold tracking-tight text-[#18181B]">
+            ASPIRE<span className="text-[#F06548]">.</span>Vision
+          </span>
+        </div>
+
+        {/* Central Nav Links */}
+        <div className="hidden md:flex items-center gap-8 text-xs font-medium text-[#716B61]">
+          <button
+            onClick={onScrollToStage}
+            className="hover:text-[#18181B] transition-colors cursor-pointer"
+          >
+            Live Stage
+          </button>
+          <button
+            onClick={onScrollToLayers}
+            className="hover:text-[#18181B] transition-colors cursor-pointer"
+          >
+            4-Layer Pipeline
+          </button>
+          <button
+            onClick={onScrollToLogs}
+            className="hover:text-[#18181B] transition-colors cursor-pointer"
+          >
+            Data Dictionary Logs
+          </button>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EFECE6] text-[11px] text-[#4A453E]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]"></span>
+            {cameraId}
           </div>
         </div>
 
-        {/* System & Camera Status Badges */}
-        <div className="flex items-center flex-wrap gap-2 text-xs">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            <Camera className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Feed: <strong className="text-white">{cameraId}</strong></span>
-          </div>
+        {/* Action Controls */}
+        <div className="flex items-center gap-2.5">
+          {/* Change Video Pill */}
+          <label className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E5E0D8] text-xs font-semibold text-[#18181B] hover:bg-[#F3EFE8] transition cursor-pointer shadow-sm">
+            <Video className="w-3.5 h-3.5 text-[#716B61]" />
+            <span>Load Video</span>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={onVideoUpload}
+              className="hidden"
+            />
+          </label>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Mode: <strong className="text-emerald-400">Offline Single-Cam</strong></span>
-          </div>
+          {/* Load CSV Pill */}
+          <label className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E5E0D8] text-xs font-semibold text-[#18181B] hover:bg-[#F3EFE8] transition cursor-pointer shadow-sm">
+            <Upload className="w-3.5 h-3.5 text-[#716B61]" />
+            <span>Load CSV</span>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={onCSVUpload}
+              className="hidden"
+            />
+          </label>
 
-          {/* Action Upload Buttons */}
-          <div className="flex items-center gap-2 ml-2">
-            <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer transition border border-slate-700 text-xs font-medium">
-              <Video className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Change Video</span>
-              <input
-                type="file"
-                accept="video/*"
-                onChange={onVideoUpload}
-                className="hidden"
-              />
-            </label>
-
-            <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer transition border border-slate-700 text-xs font-medium">
-              <Upload className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Load CSV</span>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={onCSVUpload}
-                className="hidden"
-              />
-            </label>
-          </div>
+          {/* Export CSV Accent Pill */}
+          <button
+            onClick={onExportCSV}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#F06548] hover:bg-[#DE5337] text-white text-xs font-semibold transition shadow-sm cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
-    </header>
+    </nav>
   );
 };

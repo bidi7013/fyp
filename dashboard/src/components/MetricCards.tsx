@@ -1,5 +1,4 @@
 import React from 'react';
-import { Users, ArrowDownRight, ArrowUpRight, Activity } from 'lucide-react';
 
 interface MetricCardsProps {
   currentOccupancy: number;
@@ -15,107 +14,113 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
   maxCapacity = 50,
 }) => {
   const netFlow = totalIn - totalOut;
-  const occupancyPercent = Math.min(100, Math.round((currentOccupancy / maxCapacity) * 100));
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Current Regional Occupancy Card */}
-      <div className="relative overflow-hidden rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg backdrop-blur hover:border-emerald-500/50 transition-all">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Regional Occupancy
-          </span>
-          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-            <Users className="w-5 h-5" />
-          </div>
-        </div>
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-3xl font-extrabold text-white tracking-tight">
-            {currentOccupancy}
-          </span>
-          <span className="text-xs text-slate-400 font-medium">
-            / {maxCapacity} cap ({occupancyPercent}%)
-          </span>
-        </div>
-        <div className="mt-3 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-          <div
-            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
-            style={{ width: `${occupancyPercent}%` }}
-          />
-        </div>
-        <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-          <span>Active Zone: FOYER</span>
-          <span className="text-emerald-400 font-medium">State: Monitored</span>
-        </div>
+    <section className="px-6 lg:px-12 max-w-7xl mx-auto my-4">
+      {/* Editorial Quote / Lead-in line */}
+      <div className="mb-6">
+        <p className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] max-w-3xl leading-snug">
+          “ASPIRE-Vision takes pedestrian monitoring from manual turnstile tallies to frame-accurate spatial intelligence.”
+        </p>
+        <span className="text-[11px] font-mono text-[#8A8275] uppercase tracking-wider block mt-2">
+          EVALUATION SUMMARY · PHASE 1 MVP SPECIFICATION
+        </span>
       </div>
 
-      {/* Directional Inflow (CROSS_IN) Card */}
-      <div className="relative overflow-hidden rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg backdrop-blur hover:border-cyan-500/50 transition-all">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Total Inflow (CROSS_IN)
-          </span>
-          <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
-            <ArrowDownRight className="w-5 h-5" />
+      {/* 3 Metric Cards with Minimalist Sparkline Curves (Styled after Image 2) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Card 1: Regional Occupancy */}
+        <div className="p-6 rounded-3xl bg-white border border-[#EAE5DD] shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex flex-col justify-between hover:border-[#18181B] transition-all">
+          <div className="flex items-center justify-between text-xs mb-6">
+            <span className="font-bold text-[#8A8275] tracking-wider uppercase text-[10px]">
+              REGIONAL OCCUPANCY
+            </span>
+            <span className="font-semibold text-[#18181B] font-mono text-[11px]">ZONE_FOYER</span>
           </div>
-        </div>
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-3xl font-extrabold text-cyan-400 tracking-tight">
-            +{totalIn}
-          </span>
-          <span className="text-xs text-slate-400 font-medium">pedestrians</span>
-        </div>
-        <div className="mt-3 flex items-center gap-1.5 text-xs text-cyan-400/90 font-medium">
-          <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-          Tripwire: LINE_MAIN_ENTRANCE
-        </div>
-      </div>
 
-      {/* Directional Outflow (CROSS_OUT) Card */}
-      <div className="relative overflow-hidden rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg backdrop-blur hover:border-rose-500/50 transition-all">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Total Outflow (CROSS_OUT)
-          </span>
-          <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400">
-            <ArrowUpRight className="w-5 h-5" />
-          </div>
-        </div>
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-3xl font-extrabold text-rose-400 tracking-tight">
-            -{totalOut}
-          </span>
-          <span className="text-xs text-slate-400 font-medium">pedestrians</span>
-        </div>
-        <div className="mt-3 flex items-center gap-1.5 text-xs text-rose-400/90 font-medium">
-          <span className="inline-block w-2 h-2 rounded-full bg-rose-400"></span>
-          Egress: Verified Safe
-        </div>
-      </div>
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-5xl font-bold tracking-tight text-[#18181B]">{currentOccupancy}</div>
+              <span className="text-xs text-[#8A8275] mt-1 block">/ {maxCapacity} person capacity</span>
+            </div>
 
-      {/* Net Flow Accumulation Card */}
-      <div className="relative overflow-hidden rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg backdrop-blur hover:border-purple-500/50 transition-all">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Net Accumulation (ΔN)
-          </span>
-          <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-            <Activity className="w-5 h-5" />
+            {/* Sparkline Curve */}
+            <div className="w-28 h-10">
+              <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
+                <path
+                  d="M 0 35 Q 25 30, 50 15 T 100 5"
+                  fill="none"
+                  stroke="#18181B"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
           </div>
         </div>
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className={`text-3xl font-extrabold tracking-tight ${netFlow >= 0 ? 'text-purple-400' : 'text-amber-400'}`}>
-            {netFlow > 0 ? `+${netFlow}` : netFlow}
-          </span>
-          <span className="text-xs text-slate-400 font-medium">flux balance</span>
+
+        {/* Card 2: Directional Crossing Flux */}
+        <div className="p-6 rounded-3xl bg-white border border-[#EAE5DD] shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex flex-col justify-between hover:border-[#F06548] transition-all">
+          <div className="flex items-center justify-between text-xs mb-6">
+            <span className="font-bold text-[#8A8275] tracking-wider uppercase text-[10px]">
+              TRIPWIRE CROSSINGS
+            </span>
+            <span className="font-semibold text-[#F06548] font-mono text-[11px]">LINE_MAIN_ENTRANCE</span>
+          </div>
+
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-5xl font-bold tracking-tight text-[#F06548]">+{totalIn}</div>
+              <span className="text-xs text-[#8A8275] mt-1 block">Inflow ({totalOut} Outflow)</span>
+            </div>
+
+            {/* Sparkline Curve (Coral) */}
+            <div className="w-28 h-10">
+              <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
+                <path
+                  d="M 0 38 Q 30 32, 60 18 T 100 4"
+                  fill="none"
+                  stroke="#F06548"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
-        <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-          <span>In - Out Formula</span>
-          <span className="text-purple-300 font-medium">
-            {netFlow > 0 ? 'Net Influx' : netFlow < 0 ? 'Net Egress' : 'Balanced'}
-          </span>
+
+        {/* Card 3: Net Flow Accumulation */}
+        <div className="p-6 rounded-3xl bg-white border border-[#EAE5DD] shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex flex-col justify-between hover:border-[#18181B] transition-all">
+          <div className="flex items-center justify-between text-xs mb-6">
+            <span className="font-bold text-[#8A8275] tracking-wider uppercase text-[10px]">
+              NET ACCUMULATION (ΔN)
+            </span>
+            <span className="font-semibold text-[#18181B] font-mono text-[11px]">IN - OUT BALANCE</span>
+          </div>
+
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-5xl font-bold tracking-tight text-[#18181B]">
+                {netFlow > 0 ? `+${netFlow}` : netFlow}
+              </div>
+              <span className="text-xs text-[#8A8275] mt-1 block">Live spatial flux</span>
+            </div>
+
+            {/* Sparkline Curve */}
+            <div className="w-28 h-10">
+              <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
+                <path
+                  d="M 0 30 Q 30 25, 65 12 T 100 6"
+                  fill="none"
+                  stroke="#18181B"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
