@@ -1,38 +1,27 @@
-# ASPIRE-Vision Default System Configuration
+# ASPIRE-Vision default run configuration
 # CAT405 Intelligent Computing Major Project
+#
+# A full copy of the effective configuration is stored in every run's manifest.json.
+# Counting lines are defined per video in configs/lines/<split>__<video>.json.
 
-system:
-  device: "cuda" # 'cuda' or 'cpu'
-  seed: 42
-  log_level: "INFO"
+detector:
+  model_weights: "yolov8n.pt"   # one pretrained COCO detector for the MVP
+  confidence_threshold: 0.1     # low so the tracker's second association can use weak boxes
+  iou_threshold: 0.5
+  classes: [0]                  # 0 = person
+  image_size: 640
+  device: null                  # null = let Ultralytics choose (CUDA if available)
 
-video:
-  source_path: "data/samples/pilot_clip.mp4"
-  start_timestamp: "2026-10-20T08:00:00"
-  target_fps: null # null retains original video FPS
-  display_preview: true
-  save_annotated_video: true
-  annotated_output_path: "data/exports/annotated_output.mp4"
+tracker:
+  tracker_type: "bytetrack"     # 'bytetrack' or 'botsort' -> configs/trackers/<type>.yaml
 
-detection:
-  model_weights: "yolov8n.pt" # Standard lightweight YOLOv8 model for MVP
-  confidence_threshold: 0.35
-  iou_threshold: 0.50
-  classes: [0] # 0 = 'person' in COCO dataset
+counting:
+  anchor_point: "bottom_center" # ground-contact point of the box
+  hysteresis_buffer_pixels: 10  # deadband either side of the line; crossing confirmed on clearing it
+  min_frames_between_events: 15 # per-track cooldown between two events on the same line
+  forget_track_after_frames: 60 # drop line state for tracks unseen this long (2 x track_buffer)
 
-tracking:
-  tracker_type: "bytetrack" # 'bytetrack' or 'deepsort'
-  track_high_thresh: 0.5
-  track_low_thresh: 0.1
-  new_track_thresh: 0.6
-  track_buffer: 30 # Number of frames to keep lost tracks
-  match_thresh: 0.8
-
-spatial:
-  zones_config_file: "configs/camera_zones.json"
-  anchor_point: "bottom_center" # 'bottom_center' (recommended for ground plane) or 'center'
-  hysteresis_buffer_pixels: 10 # Deadband distance to prevent line-jitter duplicate counts
-
-export:
-  output_csv_path: "data/exports/events_log.csv"
-  write_frequency_frames: 1 # Export every frame or on discrete events
+output:
+  write_review_video: true      # browser-playable VP8 copy used by the dashboard
+  write_annotated_video: false  # burned-in overlay copy for reports
+  start_timestamp: null         # ISO wall-clock time of frame 0, if known (e.g. "2026-10-20T08:00:00")

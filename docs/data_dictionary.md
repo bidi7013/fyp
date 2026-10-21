@@ -1,36 +1,84 @@
-# Data Dictionary: ASPIRE-Vision System Outputs
+# Data Dictionary: ASPIRE-Vision Outputs
 
-A crucial component of the MVP is the structured data export. The system generates CSV files logging both trajectory points and discrete counting events, strictly utilizing image-space coordinates (pixels) unless ground-plane calibration is performed.
+Every processed clip produces one run folder, `outputs/runs/<run_id>/`. All coordinates are **image pixels** with the origin at the top-left of the frame. No ground-plane calibration is applied, so no field is a physical distance, speed or density.
 
----
+`<run_id>` = `<YYYYMMDD-HHMMSS>_<clip>_<tracker>`, e.g. `20261102-141503_foyer_am_bytetrack`.
 
-## 1. Output Schema Specification
-
-| Field Name | Data Type | Constraint / Format | Description & Usage |
-| :--- | :--- | :--- | :--- |
-| **`Frame_ID`** | `Integer` | $\ge 0$, sequential | The sequential frame index from the processed video source. Essential for frame-accurate temporal synchronization. |
-| **`Track_ID`** | `Integer` | $\ge 1$, local ID | Temporary technical identifier assigned by the MOT algorithm (e.g., ByteTrack/DeepSORT). Not persistent across different videos. |
-| **`BBox_Center_X`** | `Float` | $[0.0, W_{frame}]$ | Pixel X-coordinate of the pedestrian's base center ($x_{min} + \frac{w}{2}$), used for ground-plane boundary logic. |
-| **`BBox_Center_Y`** | `Float` | $[0.0, H_{frame}]$ | Pixel Y-coordinate of the pedestrian's base center ($y_{min} + h = y_{max}$), anchoring the pedestrian to the floor. |
-| **`Event_Type`** | `String` | Categorical | Discrete trigger classification: `CROSS_IN`, `CROSS_OUT`, or `OCCUPY`. |
-| **`Timestamp`** | `DateTime` | `YYYY-MM-DDTHH:MM:SS.sss` | Derived real-world timestamp computed as: $T_0 + \frac{\text{Frame\_ID}}{\text{FPS}}$. |
-
----
-
-## 2. Event Types & Semantics
-
-* **`CROSS_IN`**: Emitted on the exact frame when a track trajectory intersects a designated virtual tripwire in the defined positive direction (e.g., entering a corridor or building).
-* **`CROSS_OUT`**: Emitted on the exact frame when a track trajectory intersects the tripwire in the negative / opposite direction (e.g., leaving the area).
-* **`OCCUPY`**: Emitted periodically (or logged per tracked pedestrian per frame) indicating presence within a designated polygon Region of Interest (ROI).
+| File | Written | Purpose |
+|---|---|---|
+| `manifest.json` | always | What was run, with which settings, and the totals |
+| `events.csv` | always | One row per crossing event |
+| `tracks.csv` | always | One row per tracked person per frame |
+| `video.webm` | default | Frame-aligned VP8 copy of the clip used by the dashboard |
+| `annotated.webm` | optional | Copy with boxes, line and counts drawn in |
+| `evaluation.json` | after evaluation | Matching against labels (see evaluation_protocol.md) |
+| `ground_truth.csv` | after evaluation | Copy of the labels that were used |
 
 ---
 
-## 3. Sample CSV Row Output
+## 1. `events.csv`: crossing events
+
+Crossings only. Occupancy and per-frame presence are **not** events and are not logged here.
+
+| Field | Type | Description |
+|---|---|---|
+| `Event_ID` | int ≥ 1 | Sequential id within the run, ordered by frame |
+| `Frame_ID` | int ≥ 0 | Frame where the anchor crossed the line (0-based decode order) |
+| `Time_S` | float | `Frame_ID / fps`, seconds from the start of the clip |
+| `Timestamp` | ISO 8601 or empty | Wall-clock time, only when `output.start_timestamp` is set |
+| `Track_ID` | int ≥ 1 | Temporary tracker id. **Not a person identity**: one person can have several ids, and one id can produce several legitimate events |
+| `Line_ID` | string | Counting line that was crossed |
+| `Event_Type` | `CROSS_IN` / `CROSS_OUT` | Direction relative to the line's `in_direction` |
+| `Anchor_X`, `Anchor_Y` | float px | Bottom-centre of the box at `Frame_ID` |
 
 ```csv
-Frame_ID,Track_ID,BBox_Center_X,BBox_Center_Y,Event_Type,Timestamp
-124,3,640.5,702.1,CROSS_IN,2026-10-20T08:00:04.133
-125,3,642.0,705.8,OCCUPY,2026-10-20T08:00:04.166
-125,4,912.4,540.2,OCCUPY,2026-10-20T08:00:04.166
-188,3,710.2,698.4,CROSS_OUT,2026-10-20T08:00:06.266
+Event_ID,Frame_ID,Time_S,Timestamp,Track_ID,Line_ID,Event_Type,Anchor_X,Anchor_Y
+1,55,1.833,,1,LINE_1,CROSS_IN,448.0,402.1
+2,110,3.667,,2,LINE_1,CROSS_IN,712.9,401.4
+3,140,4.667,,1,LINE_1,CROSS_OUT,456.6,396.7
 ```
+
+## 2. `tracks.csv`: trajectories
+
+| Field | Type | Description |
+|---|---|---|
+| `Frame_ID` | int ≥ 0 | Frame index |
+| `Track_ID` | int ≥ 1 | Tracker id |
+| `X1`, `Y1`, `X2`, `Y2` | float px | Box corners (top-left, bottom-right) |
+| `Confidence` | float 0–1 | Detector score of the box the tracker associated |
+| `Anchor_X`, `Anchor_Y` | float px | Bottom-centre `((X1+X2)/2, Y2)`, the point used for counting |
+
+Every event has a matching `tracks.csv` row (same `Track_ID`, `Frame_ID` and anchor). The dashboard's Summary tab checks this.
+
+## 3. `manifest.json`
+
+| Key | Contents |
+|---|---|
+| `schema_version`, `run_id`, `created_at`, `source` | Identification; `source` is `video` or `simulation` |
+| `git_commit` | Code version (`-dirty` when there were uncommitted changes) |
+| `video` | `name`, `path`, `split` (`dev`/`test`), `fps`, `width`, `height`, `frame_count`, `duration_s` |
+| `config` | Full effective `AppConfig`: detector, tracker type, counting rule, output options |
+| `tracker_parameters` | Contents of the tracker YAML used |
+| `lines` | Counting lines: `id`, `name`, `start`, `end`, `in_direction` |
+| `counts` | `total` and `by_line`, each `{in, out, net}` |
+| `diagnostics` | `tracks_started_in_deadband`, `suppressed_by_cooldown` |
+| `tracking` | `tracker`, `unique_tracks`, `track_points`, mean/median track length, `short_tracks` (< 1 s) |
+| `performance` | `processing_seconds`, `processing_fps`, `realtime_factor`, `device` |
+
+## 4. Counting line files: `configs/lines/<split>__<clip>.json`
+
+```json
+{
+  "video": "foyer_am.mp4",
+  "split": "dev",
+  "lines": [
+    { "id": "LINE_1", "name": "Doorway", "start": [200, 400], "end": [1080, 400], "in_direction": [0, 1] }
+  ]
+}
+```
+
+`in_direction` is any vector not parallel to the line; crossing towards the side it points to is `CROSS_IN`.
+
+## 5. Ground truth and evaluation
+
+The label format is in [annotation_rules.md](annotation_rules.md); `evaluation.json` is described in [evaluation_protocol.md](evaluation_protocol.md).
