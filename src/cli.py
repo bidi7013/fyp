@@ -105,8 +105,12 @@ def cmd_evaluate(args) -> int:
 def cmd_serve(args) -> int:
     import uvicorn
 
-    from src.api.server import create_app
+    from src.api.server import LOOPBACK_HOSTS, create_app
 
+    if args.host not in LOOPBACK_HOSTS:
+        print("The API has no authentication, so it only listens on this machine "
+              f"(one of {', '.join(LOOPBACK_HOSTS)}).", file=sys.stderr)
+        return 2
     uvicorn.run(create_app(), host=args.host, port=args.port, log_level="info")
     return 0
 

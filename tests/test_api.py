@@ -34,7 +34,8 @@ def client(tmp_path):
     def factory(config):
         return ScriptedTracker(walker(3, 160, lambda f: 60 + 8 * f, range(0, 25)))
 
-    app = create_app(Workspace(tmp_path), tracker_factory=factory, serve_dashboard=False)
+    app = create_app(Workspace(tmp_path), tracker_factory=factory, serve_dashboard=False,
+                     allowed_hosts=("testserver", "127.0.0.1", "localhost"))
     with TestClient(app) as c:
         yield c
 
@@ -110,3 +111,13 @@ def test_demo_job_creates_evaluated_run(client):
     job = wait_for(client, client.post("/api/demo").json()["id"], timeout=120)
     assert job["status"] == "succeeded", job["error"]
     assert client.get("/api/runs").json()[0]["evaluation_summary"]["fp"] == 1
+
+
+def test_refuses_foreign_hosts_and_cross_origin_writes(client):
+    # DNS rebinding: a foreign Host header is refused even for reads.
+    assert client.get("/api/runs", headers={"Host": "attacker.example"}).status_code == 403
+    # Another website posting to the API is refused...
+    assert client.post("/api/demo", headers={"Origin": "https://attacker.example"}).status_code == 403
+    # ...while the dashboard's own origin (Vite dev server or same origin) is accepted.
+    assert client.get("/api/health", headers={"Origin": "https://attacker.example"}).status_code == 200
+    assert client.post("/api/runs", json={}, headers={"Origin": "http://localhost:5173"}).status_code == 422

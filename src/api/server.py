@@ -13,8 +13,10 @@ import shutil
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 
 import cv2
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse, Response
+from urllib.parse import urlsplit
+
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import yaml
@@ -35,6 +37,12 @@ MAX_UPLOAD_BYTES = 2 * 1024 ** 3
 _VIDEO_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._ -]{0,150}$")
 _MEDIA_TYPES = {".webm": "video/webm", ".csv": "text/csv", ".json": "application/json"}
 DASHBOARD_DIST = PROJECT_ROOT / "dashboard" / "dist"
+
+# The API has no authentication, so it must only be reachable from this machine.
+# Host checks stop DNS-rebinding pages from reading it; Origin checks stop other
+# websites open in the browser from sending it state-changing requests.
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
+SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
 
 TrackerFactory = Callable[[AppConfig], BaseTracker]
 
@@ -75,6 +83,7 @@ def create_app(
     config_path: Optional[Path] = None,
     tracker_factory: Optional[TrackerFactory] = None,
     serve_dashboard: bool = True,
+    allowed_hosts: Tuple[str, ...] = LOOPBACK_HOSTS,
 ) -> FastAPI:
     workspace = workspace or Workspace.default()
     workspace.ensure()
@@ -89,6 +98,17 @@ def create_app(
     app = FastAPI(title="ASPIRE-Vision API", version=__version__, lifespan=lifespan)
     app.state.jobs = jobs
     app.state.workspace = workspace
+
+    @app.middleware("http")
+    async def local_only(request: Request, call_next):
+        host = urlsplit(f"//{request.headers.get('host', '')}").hostname
+        if host not in allowed_hosts:
+            return JSONResponse({"detail": "Host not allowed"}, status_code=403)
+        origin = request.headers.get("origin")
+        if request.method not in SAFE_METHODS and origin is not None:
+            if urlsplit(origin).hostname not in allowed_hosts:
+                return JSONResponse({"detail": "Cross-origin request refused"}, status_code=403)
+        return await call_next(request)
 
     def base_config() -> AppConfig:
         return AppConfig.load(config_path)
