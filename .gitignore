@@ -37,7 +37,6 @@ runs/
 *.mov
 *.mkv
 *.webm
-!data/samples/sample_test.mp4
 
 # Node & Dashboard
 node_modules/
@@ -56,6 +55,11 @@ dashboard/build/
 .DS_Store
 Thumbs.db
 
-# Output Logs / Processed Exports (keep folder, ignore runtime dumps if needed)
-data/exports/*.csv
-!data/exports/.gitkeep
+# Run outputs and local inputs (keep folder structure via .gitkeep)
+outputs/runs/*
+!outputs/runs/.gitkeep
+data/videos/dev/*
+data/videos/test/*
+!data/videos/*/.gitkeep
+data/exports/
+.pytest_cache/

@@ -1,102 +1,80 @@
-# ASPIRE-Vision: Counting Semantics & Spatial Mathematics
+# Counting Semantics
 
-This document formalizes the mathematical and algorithmic foundations of pedestrian spatial analytics in ASPIRE-Vision, addressing the Week 1 reasoning focus:
-1. **Differentiating occupancy vs. directional crossings**
-2. **Handling multiple legitimate events from one ID**
+What ASPIRE-Vision counts, and exactly when a count happens. Implementation: `src/analytics/geometry.py`, `src/analytics/line_counter.py`.
 
 ---
 
-## 1. Pedestrian Spatial Representation: Ground-Plane Anchor Point
+## 1. What is measured
 
-In single-camera monocular vision, perspective projection causes the bounding box height and center to shift depending on camera tilt and person height.
-The **pedestrian base center (bottom-center)** represents the contact point between the pedestrian and the ground plane:
+ASPIRE-Vision measures **directional line crossings**: discrete events, each with a frame, a direction and the tracker id that produced it.
 
-$$\mathbf{p}(t) = \begin{bmatrix} x_{\text{base}}(t) \\ y_{\text{base}}(t) \end{bmatrix} = \begin{bmatrix} x_{\min}(t) + \frac{w(t)}{2} \\ y_{\min}(t) + h(t) \end{bmatrix}$$
+| Quantity | Kind | Reported? |
+|---|---|---|
+| Crossings IN / OUT per line | Events (flow) | Yes, the primary output |
+| Net flow (IN − OUT) | Derived from events | Yes |
+| Unique track ids | Tracker artefact | Only as a diagnostic. An id is not a person |
+| Occupancy / density | State (stock) | **No.** Out of scope; needs ground-plane calibration |
 
-* **Advantage**: Decouples boundary triggering from torso height variations, head movements, and camera pitch tilt.
+**One person can contribute several legitimate events.** Someone who enters, leaves and re-enters produces IN, OUT, IN. Counting "unique ids that crossed" would be wrong both ways: it undercounts re-entries and overcounts people whose id changed.
 
----
+## 2. Reference point
 
-## 2. Directional Line-Crossing Analytics
+Each box `[x1, y1, x2, y2]` is reduced to its **bottom-centre** `p = ((x1 + x2) / 2, y2)`, an approximation of where the person touches the ground. Using the feet rather than the box centre keeps the trigger independent of the person's height and of the camera tilt.
 
-### 2.1 Virtual Tripwire Definition
-A virtual line $\mathcal{L}$ is defined by two endpoints $\mathbf{A} = (A_x, A_y)$ and $\mathbf{B} = (B_x, B_y)$ in pixel coordinates:
-$$\vec{\mathbf{v}}_{AB} = \mathbf{B} - \mathbf{A}$$
+## 3. Line, sides and direction
 
-The normal direction vector defining the **"IN"** direction is chosen orthogonal to $\vec{\mathbf{v}}_{AB}$:
-$$\vec{\mathbf{n}} = \begin{bmatrix} -(B_y - A_y) \\ B_x - A_x \end{bmatrix}$$
+A line runs from **A** to **B**. For a point **P**:
 
-### 2.2 Trajectory Segment Intersection
-For a tracked pedestrian $\text{ID}_k$, let their position at frame $t-1$ be $\mathbf{P}_{t-1}$ and at frame $t$ be $\mathbf{P}_t$.
-A crossing event requires that the line segment $\overline{\mathbf{P}_{t-1}\mathbf{P}_t}$ intersects the tripwire segment $\overline{\mathbf{A}\mathbf{B}}$.
+    orient(A, B, P) = (Bx − Ax)(Py − Ay) − (By − Ay)(Px − Ax)
+    d(P) = orient(A, B, P) / |AB|          (signed distance in pixels)
 
-Using 2D cross-products:
-$$\text{Orient}(\mathbf{A}, \mathbf{B}, \mathbf{P}) = (B_x - A_x)(P_y - A_y) - (B_y - A_y)(P_x - A_x)$$
+The sign of `d` says which side of the line P is on. Each line also stores an **`in_direction`** vector, set in the dashboard by flipping the arrow. Moving to the side that `in_direction` points to is `CROSS_IN`; the opposite is `CROSS_OUT`.
 
-An intersection occurs if and only if:
-1. $\text{Orient}(\mathbf{A}, \mathbf{B}, \mathbf{P}_{t-1}) \times \text{Orient}(\mathbf{A}, \mathbf{B}, \mathbf{P}_t) < 0$
-2. $\text{Orient}(\mathbf{P}_{t-1}, \mathbf{P}_t, \mathbf{A}) \times \text{Orient}(\mathbf{P}_{t-1}, \mathbf{P}_t, \mathbf{B}) < 0$
+## 4. The crossing rule (finite state machine with hysteresis)
 
-### 2.3 Direction Determination
-The transition sign determines the event classification:
-* **`CROSS_IN`**: $\text{Orient}(\mathbf{A}, \mathbf{B}, \mathbf{P}_{t-1}) < 0 \land \text{Orient}(\mathbf{A}, \mathbf{B}, \mathbf{P}_t) > 0$
-* **`CROSS_OUT`**: $\text{Orient}(\mathbf{A}, \mathbf{B}, \mathbf{P}_{t-1}) > 0 \land \text{Orient}(\mathbf{A}, \mathbf{B}, \mathbf{P}_t) < 0$
+Each (track, line) pair keeps:
 
----
+* **confirmed side**: +1 or −1, or 0 if the track was first seen inside the deadband;
+* **pending crossing**: the latest frame where the anchor changed sides, and whether that crossing point lies **within segment AB**;
+* **last event frame**, for the cooldown.
 
-## 3. Regional Occupancy Analytics
+The rule each frame:
 
-### 3.1 Polygon Region of Interest (ROI)
-A region $\mathcal{R}$ is defined by an ordered set of $N$ polygon vertices:
-$$\mathcal{P} = \{ \mathbf{V}_1, \mathbf{V}_2, \dots, \mathbf{V}_N \}, \quad \mathbf{V}_i \in \mathbb{R}^2$$
+1. Compute `d(p)`. If `|d| < hysteresis_buffer_pixels`, the anchor is in the **deadband** and the confirmed side does not change.
+2. If the anchor changed sides since the last off-line position, record a pending crossing: its frame, and whether the crossing point projects inside A–B.
+3. When the anchor is outside the deadband **on the opposite side** from the confirmed side:
+   * if there is a pending crossing inside the segment, emit an event **dated to the crossing frame**;
+   * unless the same track produced an event less than `min_frames_between_events` frames earlier (cooldown), in which case the event is suppressed and counted in `diagnostics.suppressed_by_cooldown`;
+   * in either case the confirmed side flips.
+4. When the anchor is back outside the deadband on the **same** side, any pending crossing is discarded. A step over and back is not a crossing.
 
-### 3.2 Point-in-Polygon (PIP) Formulation
-At frame $t$, the regional occupancy count $O_{\mathcal{R}}(t)$ is the instantaneous sum of active tracked objects whose anchor point resides inside $\mathcal{P}$:
+Consequences:
 
-$$O_{\mathcal{R}}(t) = \sum_{k \in \mathcal{T}(t)} \mathbb{I}\left( \mathbf{p}_k(t) \in \mathcal{P} \right)$$
+| Situation | Result |
+|---|---|
+| Walks straight across | 1 event at the frame the feet crossed the line |
+| Jitters within ±buffer of the line | No event |
+| Steps over, turns back | No event |
+| Crosses beyond A or B | No event (side flips silently) |
+| Enters, leaves, re-enters | 3 events from one id |
+| Reverses within the cooldown | Second event suppressed |
+| Lost for a few frames, then found again with the same id | State kept for `forget_track_after_frames` |
 
-where $\mathbb{I}(\cdot)$ is the indicator function evaluated using the Jordan Curve (Ray-Casting) Theorem or Winding Number algorithm.
+Defaults (`configs/default_config.yaml`): buffer 10 px, cooldown 15 frames, forget after 60 frames.
 
----
+## 5. Identity switches near the line (week 2 question)
 
-## 4. Differentiating Occupancy vs. Directional Crossings
+The FSM works per **track id**. When the tracker swaps or re-creates an id close to the line, the per-id state is wrong, and the count can be wrong in either direction:
 
-| Dimension | Regional Occupancy (`OCCUPY`) | Directional Crossing (`CROSS_IN` / `CROSS_OUT`) |
-| :--- | :--- | :--- |
-| **Mathematical Nature** | **State Variable (Stock)**: Evaluated at an instantaneous point in time $t$. | **Flux / Event Variable (Flow)**: Line integral of velocity across a boundary over interval $\Delta t$. |
-| **Temporal Persistence** | Continuous: logged or updated every frame while the subject remains inside. | Discrete impulse: emitted at the single frame boundary transition. |
-| **Error Propagation** | Self-correcting: if a track is temporarily lost and recovered inside, occupancy updates back to ground truth. | Cumulative: a missed crossing or duplicate count permanently offsets total counts unless manually adjusted. |
-| **Use Case** | Crowd density monitoring, room capacity limits, dwell-time estimation. | Turnstile throughput, net flow calculation: $\Delta N = \sum \text{CROSS\_IN} - \sum \text{CROSS\_OUT}$. |
+* **Missed count.** The new id is born **inside the deadband**, so it has no confirmed side, and its first crossing is not counted. `diagnostics.tracks_started_in_deadband` counts these births.
+* **Duplicate count.** The old id has already been counted. The new id appears on the **original** side, for example because an occluded, shorter box puts its feet back above the line, and then "crosses" again. One person produces two events with different ids.
 
----
+Both cases are reproduced in the synthetic demo scene (`src/simulate.py`, people P5 and P6) and show up in its evaluation as one false negative and one false positive. In that run the total count error is zero, because the two errors cancel. This is why event-level matching is reported alongside the count error.
 
-## 5. Handling Multiple Legitimate Events from One ID
+Mitigations to evaluate on dev clips: a wider deadband (fewer births inside it, but later confirmation), a longer tracker `track_buffer` (fewer re-created ids), placing the line away from occluders, and comparing ByteTrack with BoT-SORT.
 
-A naive system might simply maintain a set of counted IDs: `if track_id in counted: ignore`.
-**This fails in real campus environments**, where a student may legitimately enter a building, leave 10 minutes later, and re-enter.
+## 6. Known limits
 
-### 5.1 Finite State Machine (FSM) with Spatial Hysteresis
-To prevent **line chattering** (rapid bouncing back and forth across the line due to tracking jitter or wandering near the threshold) while allowing **legitimate re-entries**, each track maintains an internal state:
-
-```
-               [Distance > +d_hysteresis]
-                    +--------------------+
-                    |                    |
-                    v                    |
-            +---------------+    CROSS_IN   +--------------+
-            |  ZONE_OUTSIDE | ------------> |  ZONE_INSIDE |
-            +---------------+               +--------------+
-                    |                               |
-                    |           CROSS_OUT           |
-                    +-------------------------------+
-                       [Distance < -d_hysteresis]
-```
-
-### 5.2 State Machine Rules
-1. **Hysteresis Deadband**: A buffer zone of $\pm d_{\text{hysteresis}}$ pixels (e.g., 15–25 px depending on camera resolution) flanks the virtual tripwire.
-2. **State Transition Requirements**:
-   * A track in `ZONE_OUTSIDE` crossing the line emits `CROSS_IN` and enters `PENDING_INSIDE`.
-   * The event is locked, and the track is only transitioned to `ZONE_INSIDE` once its anchor point clears $+d_{\text{hysteresis}}$ pixels away from the line.
-   * While within the buffer, no new crossing events can be triggered by this ID.
-   * A subsequent `CROSS_OUT` is only permitted if the ID was confirmed in `ZONE_INSIDE`.
-3. **Temporal Cooldown**: A minimal threshold $\Delta t_{\min}$ (e.g., 30 frames / 1 second) must elapse before an inverse crossing is accepted, eliminating camera occlusion flicker.
+* Pixel-space only: no speed or density claims without calibration.
+* A track first seen inside the deadband is never counted on its first crossing (conservative choice).
+* Crossings during long occlusions depend entirely on the tracker keeping the id.

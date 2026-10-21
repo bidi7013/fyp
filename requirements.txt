@@ -1,19 +1,14 @@
-# Computer Vision & Deep Learning
-ultralytics>=8.1.0
+# Detection & tracking (YOLOv8 + ByteTrack/BoT-SORT via Ultralytics; pulls in torch)
+ultralytics>=8.3.0
 opencv-python>=4.8.0
-torch>=2.0.0
-torchvision>=0.15.0
-
-# Spatial Analytics & Geometry
 numpy>=1.24.0
-scipy>=1.10.0
-shapely>=2.0.0
-
-# Data Management & Export
-pandas>=2.0.0
 pyyaml>=6.0
-tqdm>=4.65.0
 
-# Optional Visualizer & Annotator utilities
-supervision>=0.18.0
-matplotlib>=3.7.0
+# Local API for the dashboard
+fastapi>=0.115.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
+
+# Tests
+pytest>=8.0.0
+httpx>=0.27.0

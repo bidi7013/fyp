@@ -11,11 +11,10 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "@types/papaparse": "^5.5.2",
     "lucide-react": "^1.60.0",
-    "papaparse": "^5.7.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-router": "^7.18.4",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {

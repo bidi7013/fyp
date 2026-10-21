@@ -11,7 +11,9 @@
 - [x] Defined spatial analytics semantics and mathematical formulations.
 - [x] Established ground-truth annotation protocol.
 - [x] End-to-end interface sketch / wireframe designed.
-- [ ] Sample pilot clip ingested and baseline pipeline runnable.
+- [x] Baseline pipeline runnable end to end (synthetic demo scene: process, review, evaluate).
+- [ ] Approved pilot clip (or licensed public fallback) ingested into `data/videos/dev/`.
+- [ ] Pilot clip labelled following `docs/annotation_rules.md`.
 
 ---
 

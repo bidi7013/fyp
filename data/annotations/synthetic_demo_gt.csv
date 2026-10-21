@@ -1,0 +1,6 @@
+Clip_ID,Frame_ID,GT_Person_ID,Line_ID,Event_Type,Notes
+synthetic_demo,55,1,LINE_1,CROSS_IN,"P1 enters, lingers, leaves"
+synthetic_demo,110,2,LINE_1,CROSS_IN,P2 enters
+synthetic_demo,140,1,LINE_1,CROSS_OUT,"P1 enters, lingers, leaves"
+synthetic_demo,213,5,LINE_1,CROSS_OUT,P5 leaves; ID switch in deadband
+synthetic_demo,231,6,LINE_1,CROSS_IN,P6 enters; ID re-spawns on wrong side
